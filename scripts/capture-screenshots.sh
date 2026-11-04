@@ -116,7 +116,9 @@ if tap_text "View wallpaper"; then
   shot 03-wallpaper-detail
   # Save it while the heart and Download are still on screen, so the Saved and Files
   # screens have real content to show.
-  tap_text "Favourite" || true
+  # The heart is a Compose icon button; when its semantics are not exposed by uiautomator,
+  # fall back to its fixed position in the detail header (Pixel 5, 1080x2340).
+  tap_text "Favourite" || $ADB shell input tap 837 222
   sleep 4
   tap_text "Download" || true
   echo "   waiting for the original to download"
