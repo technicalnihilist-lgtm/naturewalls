@@ -164,21 +164,32 @@ echo "sdk.dir=/path/to/Android/Sdk" > local.properties
 
 ## 5. Verification performed
 
-* **Live API contract tested against commons.wikimedia.org** before shipping: `formatversion=2`
-  returns `query.pages` as an array; `extmetadata` contains `LicenseShortName`, `Artist`,
-  `Categories`, `ImageDescription`, `LicenseUrl`; the `continue` block returns `gsroffset`; the
-  `1600px-` → `600px-` thumbnail rewrite resolves; category feeds (`Quality images of nature`,
-  newest-first) return photographs.
-* **Catalogue validated**: every one of the 48 sub-category searches was run against the live API;
-  each returned dozens of photographs passing the licence filter (e.g. `waterfall` 20/25,
-  `sunflower field` 25/25, `himalaya mountains` 23/25). Queries that returned too few results were
-  retuned before being shipped — none of the shelves is empty.
-* **Filter behaviour measured**: `Quality images of nature` passes 42/50 pages, which is why it
-  drives the curated shelves; `Featured pictures of nature` passes only 5/15 (it is dominated by
-  bird and animal features), so it was deliberately not used.
-* **Project compiled and packaged**: `assembleDebug` succeeded with Kotlin, KSP/Room code generation
-  and resource linking all clean (no warnings), producing an installable ~20 MB APK
-  (`com.naturewalls.app.debug`, launcher `MainActivity`, 15 dex files, minSdk 26 / target 35).
+* **Built and shipped by CI** (`.github/workflows/android.yml`): every push produces a signed,
+  R8-minified release APK, installs it on an Android 13 emulator, drives the real UI to capture
+  nine screenshots, commits them to `docs/screenshots/` and attaches everything to the
+  [v1.0.0 release](https://github.com/technicalnihilist-lgtm/naturewalls/releases/latest).
+* **Two real bugs were caught by that emulator run and fixed**, which is exactly why it runs:
+  * *Blank photographs.* Commons' thumbnail service only renders a fixed set of widths
+    (500 / 1280 / 1920 px) and answers **HTTP 400** for anything else. The app was rewriting the
+    preview URL to a 600 px thumbnail, so every grid card failed to load. It now takes the API's
+    own 500 px thumbnail and derives the 1280 px preview bucket; small originals keep their
+    original URL instead of being upscaled.
+  * *Blocked image requests.* `upload`/`thumb.wikimedia.org` return **403** to a bare
+    `okhttp/x.y.z` User-Agent. Coil now sends NatureWalls' descriptive UA through its call factory.
+  * Hardware bitmaps were also disabled (`allowHardware(false)`), because they decode but never
+    composite on software-GPU devices and cannot be handed to `WallpaperManager`.
+* **Download pipeline proven on-device**: the screenshots show the original *Cabo Greco* file
+  (8665 × 4783, 8.2 MB) saved to `Pictures/NatureWalls` and listed with its photographer.
+* **Live API contract tested against commons.wikimedia.org**: `formatversion=2` returns
+  `query.pages` as an array; `extmetadata` carries `LicenseShortName`, `Artist`, `Categories`,
+  `ImageDescription`, `LicenseUrl`; the `continue` block returns `gsroffset` for pagination.
+* **Catalogue validated**: all 48 sub-category searches were run against the live API; each
+  returned dozens of photographs passing the licence filter (`waterfall` 20/25,
+  `sunflower field` 25/25, `himalaya mountains` 23/25). Queries that came back thin were retuned
+  before shipping.
+* **Filter behaviour measured**: `Quality images of nature` passes 42/50 pages and therefore drives
+  the curated shelves; `Featured pictures of nature` passes only 5/15 (it is dominated by bird and
+  animal features), so it is deliberately not used.
 
 ---
 
