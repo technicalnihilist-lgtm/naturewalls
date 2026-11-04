@@ -36,7 +36,7 @@ try:
 except Exception:
     sys.exit(0)
 label = sys.argv[1]
-for m in re.finditer(r'text="([^"]*)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml):
+for m in re.finditer(r'<node[^>]*?(?:text|content-desc)="([^"]*)"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml):
     if m.group(1).strip() == label:
         x1, y1, x2, y2 = map(int, m.groups()[1:])
         print((x1 + x2) // 2, (y1 + y2) // 2)
@@ -74,8 +74,8 @@ dismiss_dialogs() {
 }
 
 hide_keyboard() {
+  # ESC dismisses the IME without navigating; BACK would pop the screen.
   $ADB shell input keyevent 111 > /dev/null 2>&1
-  $ADB shell input keyevent 4 > /dev/null 2>&1
   sleep 2
 }
 
@@ -107,8 +107,14 @@ if tap_text "View wallpaper"; then
   $ADB shell input swipe 540 1700 540 450 400
   sleep 5
   shot 04-wallpaper-credits
+  # Save it, so the Saved / Files screens have real content to show
+  tap_text "Favourite" || true
+  sleep 4
+  tap_text "Download" || true
+  echo "   waiting for the original to download"
+  sleep 30
   $ADB shell input keyevent 4
-  sleep 5
+  sleep 6
 fi
 
 # 5 — Search results for a nature subject
@@ -135,6 +141,8 @@ fi
 # 8 — Category browsing with sub-category chips
 if tap_text "Home"; then
   sleep 10
+  $ADB shell input swipe 540 1500 540 900 300
+  sleep 4
   if tap_text "See all"; then
     sleep 20
     shot 08-category-browse
