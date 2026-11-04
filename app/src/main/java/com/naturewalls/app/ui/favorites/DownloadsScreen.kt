@@ -118,7 +118,10 @@ private fun DownloadRow(
                 .background(NatureBlack)
         ) {
             AsyncImage(
-                model = ImageRequest.Builder(context).data(item.wallpaper.thumbUrl).build(),
+                model = ImageRequest.Builder(context)
+                    .data(item.wallpaper.thumbUrl)
+                    .allowHardware(false)
+                    .build(),
                 contentDescription = item.wallpaper.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()

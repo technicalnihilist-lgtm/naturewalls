@@ -49,6 +49,9 @@ private fun imageRequest(context: android.content.Context, url: String): ImageRe
     ImageRequest.Builder(context)
         .data(url)
         .crossfade(true)
+        // ARGB_8888 bitmaps: hardware bitmaps render black on software-GPU devices
+        // (emulators, some low-end hardware) and cannot be re-used by WallpaperManager.
+        .allowHardware(false)
         .build()
 
 /** Portrait card used inside horizontal rails. */

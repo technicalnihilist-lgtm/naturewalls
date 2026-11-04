@@ -10,19 +10,21 @@ OUT="docs/screenshots"
 ADB="adb -e"
 
 mkdir -p "$OUT"
+rm -f "$OUT"/*.png
 
 echo "== waiting for device"
 $ADB wait-for-device
 $ADB shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 2; done'
 sleep 5
+$ADB logcat -c || true
 
 echo "== installing $APK"
 $ADB install -r -g "$APK" || $ADB install -r "$APK"
 
 $ADB shell am force-stop "$PKG"
 $ADB shell am start -n "$ACTIVITY" > /dev/null
-echo "== waiting for live content from Wikimedia Commons"
-sleep 35
+echo "== waiting for live content and photographs from Wikimedia Commons"
+sleep 45
 
 shot() {
   $ADB exec-out screencap -p > "$OUT/$1.png"
@@ -59,6 +61,12 @@ PY
   return 1
 }
 
+hide_keyboard() {
+  $ADB shell input keyevent 111 > /dev/null 2>&1   # ESC
+  $ADB shell input keyevent 4 > /dev/null 2>&1     # BACK
+  sleep 2
+}
+
 # 1 — Home, live feed loaded
 shot 01-home
 
@@ -69,58 +77,58 @@ shot 02-home-collections
 
 # 3 — Wallpaper detail (open the daily hero)
 if tap_text "View wallpaper"; then
-  sleep 14
+  sleep 16
   shot 03-wallpaper-detail
   # 4 — Credits block + licence terms on the detail screen
   $ADB shell input swipe 540 1700 540 450 400
-  sleep 4
+  sleep 5
   shot 04-wallpaper-credits
   $ADB shell input keyevent 4
-  sleep 4
-else
-  $ADB shell input tap 540 1050
-  sleep 14
-  shot 03-wallpaper-detail
-  $ADB shell input keyevent 4
-  sleep 4
+  sleep 5
 fi
 
-# 5 — Search
+# 5 — Search results for a nature subject
 if tap_text "Search"; then
-  sleep 10
+  sleep 8
   tap_text "waterfall" || true
-  sleep 12
+  sleep 16
+  hide_keyboard
   shot 05-search
 fi
 
 # 6 — Favourites
 if tap_text "Saved"; then
-  sleep 8
+  sleep 10
   shot 06-favourites
 fi
 
 # 7 — Downloads
 if tap_text "Files"; then
-  sleep 8
+  sleep 10
   shot 07-downloads
 fi
 
 # 8 — Category browsing with sub-category chips
 if tap_text "Home"; then
-  sleep 8
+  sleep 10
   if tap_text "See all"; then
-    sleep 14
+    sleep 18
     shot 08-category-browse
     $ADB shell input keyevent 4
-    sleep 4
+    sleep 5
   fi
 fi
 
 # 9 — Credits ledger
 if tap_text "Credits"; then
-  sleep 10
+  sleep 12
   shot 09-credits-ledger
+  $ADB shell input keyevent 4
+  sleep 3
 fi
+
+echo "== image pipeline diagnostics (Coil / OkHttp)"
+$ADB logcat -d -v brief | grep -iE "coil|okhttp|naturewalls|AndroidRuntime" | tail -40 || true
 
 echo "== screenshots:"
 ls -lh "$OUT"

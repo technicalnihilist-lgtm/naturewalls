@@ -208,6 +208,7 @@ private fun DetailContent(
                 model = ImageRequest.Builder(context)
                     .data(wallpaper.previewUrl)
                     .crossfade(true)
+                    .allowHardware(false)
                     .build(),
                 contentDescription = wallpaper.title,
                 contentScale = ContentScale.Crop,
