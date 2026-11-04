@@ -191,7 +191,7 @@ class WallpaperRepository(
         "formatversion" to "2",
         "prop" to "imageinfo",
         "iiprop" to "url|size|extmetadata|timestamp|mime",
-        "iiurlwidth" to "1600",
+        "iiurlwidth" to "500",
         "iilimit" to "1",
         "maxlag" to "5"
     )

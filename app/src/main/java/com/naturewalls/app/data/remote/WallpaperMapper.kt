@@ -18,7 +18,13 @@ import java.util.Locale
 object WallpaperMapper {
 
     const val MIN_WIDTH = 1200
-    private const val THUMB_WIDTH = 600
+
+    /**
+     * Wikimedia's thumbnail service only renders a fixed set of widths (500, 1280, 1920 …) and
+     * answers HTTP 400 for anything else, so the app only ever requests those buckets.
+     */
+    private const val THUMB_WIDTH = 500
+    private const val PREVIEW_WIDTH = 1280
 
     private val ALLOWED_MIME = setOf("image/jpeg", "image/png", "image/jpg")
     private val PHOTO_EXTENSION = Regex("\\.(jpe?g|png)$", RegexOption.IGNORE_CASE)
@@ -73,8 +79,10 @@ object WallpaperMapper {
             ?: emptyList()
         if (categories.any { category -> isBlocked(category) }) return null
 
-        val previewUrl = info.thumbUrl ?: fullUrl
-        val thumbUrl = downscaleThumb(previewUrl, THUMB_WIDTH, width)
+        // The API returns a ready-made 500 px thumbnail; the larger preview is derived from it
+        // using another standard bucket, or falls back to the original for small files.
+        val thumbUrl = info.thumbUrl ?: fullUrl
+        val previewUrl = previewFor(thumbUrl, fullUrl, width)
 
         val licenseUrl = md.text("LicenseUrl")?.takeIf { it.startsWith("http") }
 
@@ -123,14 +131,14 @@ object WallpaperMapper {
     }
 
     /**
-     * Wikimedia serves thumbnails at any width through the same path, e.g.
-     * `…/thumb/a/ab/Name.jpg/1600px-Name.jpg`. Rewriting the width segment gives us a light
-     * grid thumbnail without a second API round trip.
+     * Rewrites the width segment of a Commons thumbnail URL (e.g. `…/500px-Name.jpg`) to the
+     * standard 1280 px bucket. Files narrower than that keep their original URL, because Commons
+     * never upscales and would answer HTTP 400.
      */
-    private fun downscaleThumb(url: String, targetWidth: Int, originalWidth: Int): String {
-        if (originalWidth <= targetWidth) return url
-        val rewritten = url.replace(Regex("/\\d+px-"), "/${targetWidth}px-")
-        return if (rewritten == url) url else rewritten
+    private fun previewFor(thumbUrl: String, fullUrl: String, originalWidth: Int): String {
+        if (originalWidth < PREVIEW_WIDTH) return fullUrl
+        val rewritten = thumbUrl.replace(Regex("/\\d+px-"), "/${PREVIEW_WIDTH}px-")
+        return if (rewritten == thumbUrl) fullUrl else rewritten
     }
 
     /**

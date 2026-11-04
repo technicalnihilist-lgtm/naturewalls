@@ -15,29 +15,21 @@ rm -f "$OUT"/*.png
 echo "== waiting for device"
 $ADB wait-for-device
 $ADB shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 2; done'
-sleep 5
+echo "== letting the system settle (cold boot keeps the launcher busy)"
+sleep 40
+$ADB shell input keyevent 82 > /dev/null 2>&1 || true
+$ADB shell wm dismiss-keyguard > /dev/null 2>&1 || true
 $ADB logcat -c || true
 
 echo "== installing $APK"
 $ADB install -r -g "$APK" || $ADB install -r "$APK"
 
-$ADB shell am force-stop "$PKG"
-$ADB shell am start -n "$ACTIVITY" > /dev/null
-echo "== waiting for live content and photographs from Wikimedia Commons"
-sleep 45
-
-shot() {
-  $ADB exec-out screencap -p > "$OUT/$1.png"
-  echo "captured $1 ($(stat -c%s "$OUT/$1.png") bytes)"
-}
-
-# Taps a UI element by its visible text, using the accessibility tree (works with Compose).
-tap_text() {
+# Reads the accessibility tree and prints "x y" for the node with the given text.
+find_text() {
   local label="$1"
   $ADB shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1
   $ADB pull /sdcard/ui.xml /tmp/ui.xml > /dev/null 2>&1
-  local xy
-  xy=$(python3 - "$label" <<'PY'
+  python3 - "$label" <<'PY'
 import re, sys
 try:
     xml = open('/tmp/ui.xml', encoding='utf-8', errors='ignore').read()
@@ -50,7 +42,11 @@ for m in re.finditer(r'text="([^"]*)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]
         print((x1 + x2) // 2, (y1 + y2) // 2)
         break
 PY
-)
+}
+
+tap_text() {
+  local label="$1" xy
+  xy=$(find_text "$label")
   if [ -n "${xy:-}" ]; then
     set -- $xy
     echo "   tap '$label' at $1,$2"
@@ -61,11 +57,39 @@ PY
   return 1
 }
 
+# System ANR / crash dialogs steal focus and break both taps and uiautomator.
+dismiss_dialogs() {
+  local i
+  for i in 1 2 3; do
+    find_text "Wait" > /dev/null
+    if grep -qE "isn.t responding|Not responding|Close app" /tmp/ui.xml 2>/dev/null; then
+      echo "   dismissing a system dialog"
+      if tap_text "Wait"; then sleep 3; continue; fi
+      $ADB shell input keyevent 4 > /dev/null 2>&1
+      sleep 2
+    else
+      return 0
+    fi
+  done
+}
+
 hide_keyboard() {
-  $ADB shell input keyevent 111 > /dev/null 2>&1   # ESC
-  $ADB shell input keyevent 4 > /dev/null 2>&1     # BACK
+  $ADB shell input keyevent 111 > /dev/null 2>&1
+  $ADB shell input keyevent 4 > /dev/null 2>&1
   sleep 2
 }
+
+shot() {
+  dismiss_dialogs
+  $ADB exec-out screencap -p > "$OUT/$1.png"
+  echo "captured $1 ($(stat -c%s "$OUT/$1.png") bytes)"
+}
+
+$ADB shell am force-stop "$PKG"
+$ADB shell am start -n "$ACTIVITY" > /dev/null
+echo "== waiting for live content and photographs from Wikimedia Commons"
+sleep 45
+dismiss_dialogs
 
 # 1 — Home, live feed loaded
 shot 01-home
@@ -77,7 +101,7 @@ shot 02-home-collections
 
 # 3 — Wallpaper detail (open the daily hero)
 if tap_text "View wallpaper"; then
-  sleep 16
+  sleep 18
   shot 03-wallpaper-detail
   # 4 — Credits block + licence terms on the detail screen
   $ADB shell input swipe 540 1700 540 450 400
@@ -91,7 +115,7 @@ fi
 if tap_text "Search"; then
   sleep 8
   tap_text "waterfall" || true
-  sleep 16
+  sleep 18
   hide_keyboard
   shot 05-search
 fi
@@ -112,7 +136,7 @@ fi
 if tap_text "Home"; then
   sleep 10
   if tap_text "See all"; then
-    sleep 18
+    sleep 20
     shot 08-category-browse
     $ADB shell input keyevent 4
     sleep 5
@@ -127,8 +151,13 @@ if tap_text "Credits"; then
   sleep 3
 fi
 
-echo "== image pipeline diagnostics (Coil / OkHttp)"
-$ADB logcat -d -v brief | grep -iE "coil|okhttp|naturewalls|AndroidRuntime" | tail -40 || true
+echo "== image pipeline diagnostics (last 60 lines of logcat)"
+$ADB logcat -d -v brief | tail -60 || true
 
-echo "== screenshots:"
+COUNT=$(ls -1 "$OUT"/*.png 2>/dev/null | wc -l)
+echo "== $COUNT screenshots captured"
 ls -lh "$OUT"
+if [ "$COUNT" -lt 6 ]; then
+  echo "::error::Expected at least 6 screenshots, captured $COUNT"
+  exit 1
+fi
