@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NatureWalls</string>
+    <string name="share_wallpaper_subject">Nature wallpaper from NatureWalls</string>
+    <string name="share_wallpaper_text">A nature photograph from Wikimedia Commons, via NatureWalls.</string>
+    <string name="credits_source">Photograph from Wikimedia Commons</string>
+</resources>
