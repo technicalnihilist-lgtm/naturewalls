@@ -73,6 +73,17 @@ dismiss_dialogs() {
   done
 }
 
+# Scrolls down until the label appears, then taps it.
+tap_text_scrolling() {
+  local label="$1" attempt
+  for attempt in 1 2 3 4 5 6; do
+    if tap_text "$label"; then return 0; fi
+    $ADB shell input swipe 540 1500 540 800 300
+    sleep 3
+  done
+  return 1
+}
+
 hide_keyboard() {
   # ESC dismisses the IME without navigating; BACK would pop the screen.
   $ADB shell input keyevent 111 > /dev/null 2>&1
@@ -103,16 +114,17 @@ shot 02-home-collections
 if tap_text "View wallpaper"; then
   sleep 18
   shot 03-wallpaper-detail
-  # 4 — Credits block + licence terms on the detail screen
-  $ADB shell input swipe 540 1700 540 450 400
-  sleep 5
-  shot 04-wallpaper-credits
-  # Save it, so the Saved / Files screens have real content to show
+  # Save it while the heart and Download are still on screen, so the Saved and Files
+  # screens have real content to show.
   tap_text "Favourite" || true
   sleep 4
   tap_text "Download" || true
   echo "   waiting for the original to download"
   sleep 30
+  # 4 — Credits block + licence terms on the detail screen
+  $ADB shell input swipe 540 1700 540 450 400
+  sleep 5
+  shot 04-wallpaper-credits
   $ADB shell input keyevent 4
   sleep 6
 fi
@@ -141,9 +153,7 @@ fi
 # 8 — Category browsing with sub-category chips
 if tap_text "Home"; then
   sleep 10
-  $ADB shell input swipe 540 1500 540 900 300
-  sleep 4
-  if tap_text "See all"; then
+  if tap_text_scrolling "See all"; then
     sleep 20
     shot 08-category-browse
     $ADB shell input keyevent 4
