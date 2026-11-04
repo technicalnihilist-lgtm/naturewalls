@@ -1,0 +1,116 @@
+name: Android
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk-and-screenshots:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Build signed release APK
+        run: |
+          set -e
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/naturewalls.jks" \
+            -storepass naturewalls -keypass naturewalls \
+            -alias naturewalls -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=NatureWalls, OU=Android, O=NatureWalls, L=India, C=IN" > /dev/null 2>&1
+          export NW_KEYSTORE="$RUNNER_TEMP/naturewalls.jks"
+          export NW_STORE_PASSWORD=naturewalls
+          export NW_KEY_ALIAS=naturewalls
+          export NW_KEY_PASSWORD=naturewalls
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace assembleRelease assembleDebug
+          cp app/build/outputs/apk/release/app-release.apk NatureWalls-1.0.0.apk
+          cp app/build/outputs/apk/debug/app-debug.apk NatureWalls-1.0.0-debug.apk
+          ls -lh NatureWalls-1.0.0.apk
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Capture device screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            chmod +x scripts/capture-screenshots.sh
+            ./scripts/capture-screenshots.sh
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: docs/screenshots/*.png
+          if-no-files-found: warn
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: |
+            NatureWalls-1.0.0.apk
+            NatureWalls-1.0.0-debug.apk
+
+      - name: Commit screenshots back to the repo
+        run: |
+          git config user.name "NatureWalls CI"
+          git config user.email "nihaonihao54059@gmail.com"
+          git add docs/screenshots
+          if git diff --staged --quiet; then
+            echo "No screenshot changes"
+          else
+            git commit -m "docs: refresh device screenshots from CI emulator"
+            git push
+          fi
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: NatureWalls 1.0.0
+          draft: false
+          prerelease: false
+          body: |
+            ## NatureWalls 1.0.0
+
+            Premium AMOLED nature wallpaper app for Android. Every photograph is fetched live from
+            the **Wikimedia Commons API** at the moment it is shown — no bundled catalogue.
+
+            **Included**
+            - `NatureWalls-1.0.0.apk` — signed release build (R8 minified)
+            - `NatureWalls-1.0.0-debug.apk` — debug build, `com.naturewalls.app.debug`
+            - Device screenshots captured on an Android 13 emulator by this workflow
+
+            **Licensing** — only CC0, Public Domain, CC BY and CC BY-SA photographs are shown;
+            NonCommercial, NoDerivatives, fair use and unknown licences are rejected. Every image
+            carries its photographer, licence, licence URL and Wikimedia Commons source page.
+          files: |
+            NatureWalls-1.0.0.apk
+            NatureWalls-1.0.0-debug.apk
+            docs/screenshots/*.png

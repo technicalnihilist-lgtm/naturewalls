@@ -1,5 +1,15 @@
 # NatureWalls — Premium Nature & Landscape Wallpapers
 
+[![Android CI](https://github.com/technicalnihilist-lgtm/naturewalls/actions/workflows/android.yml/badge.svg)](https://github.com/technicalnihilist-lgtm/naturewalls/actions/workflows/android.yml)
+[![Download APK](https://img.shields.io/badge/download-APK%20v1.0.0-2FBF71?logo=android&logoColor=white)](https://github.com/technicalnihilist-lgtm/naturewalls/releases/latest)
+![Platform](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-0B3D24)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white)
+![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)
+
+> **Install:** grab the signed APK from the [latest release](https://github.com/technicalnihilist-lgtm/naturewalls/releases/latest)
+> (`NatureWalls-1.0.0.apk`, ~20 MB, Android 8.0+). Screenshots below are real captures from an
+> Android 13 emulator, taken by this repo's CI workflow.
+
 A complete Android application (Kotlin · Jetpack Compose · Material 3) that streams real nature
 photography from the official **Wikimedia Commons API**, verifies each file's licence and
 attribution metadata, and sets any of it as your home screen, lock screen or both.
@@ -7,6 +17,23 @@ attribution metadata, and sets any of it as your home screen, lock screen or bot
 Everything is **live**. There is no bundled image list, no seed data and no offline catalogue: each
 screen issues its own Commons API call when you open it, and every card carries a `LIVE · 2 min ago`
 badge with the time of the last successful fetch.
+
+## Screenshots
+
+Real device captures (Pixel 5, Android 13, live content from Wikimedia Commons), refreshed by
+`.github/workflows/android.yml` on every push.
+
+| Home — live feed | Collections | Wallpaper detail |
+|---|---|---|
+| ![Home](docs/screenshots/01-home.png) | ![Collections](docs/screenshots/02-home-collections.png) | ![Detail](docs/screenshots/03-wallpaper-detail.png) |
+
+| Credits on the wallpaper | Search | Category browsing |
+|---|---|---|
+| ![Wallpaper credits](docs/screenshots/04-wallpaper-credits.png) | ![Search](docs/screenshots/05-search.png) | ![Category](docs/screenshots/08-category-browse.png) |
+
+| Favourites | Downloads | Credits ledger |
+|---|---|---|
+| ![Favourites](docs/screenshots/06-favourites.png) | ![Downloads](docs/screenshots/07-downloads.png) | ![Credits ledger](docs/screenshots/09-credits-ledger.png) |
 
 ---
 

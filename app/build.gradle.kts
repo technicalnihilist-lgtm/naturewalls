@@ -19,8 +19,27 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        // Release signing is supplied by CI (or your own machine) through environment
+        // variables. When no keystore is present the release build stays unsigned, so a
+        // plain `assembleDebug` / IDE build never breaks.
+        create("release") {
+            val storePath = System.getenv("NW_KEYSTORE")
+            if (storePath != null && File(storePath).exists()) {
+                storeFile = File(storePath)
+                storePassword = System.getenv("NW_STORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("NW_KEY_ALIAS") ?: "naturewalls"
+                keyPassword = System.getenv("NW_KEY_PASSWORD") ?: ""
+            }
+        }
+    }
+
     buildTypes {
         release {
+            val storePath = System.getenv("NW_KEYSTORE")
+            if (storePath != null && File(storePath).exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
