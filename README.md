@@ -200,3 +200,17 @@ under the licence published on Commons and shows the credit block everywhere: on
 in the credits ledger, and inside every share. CC BY-SA copies you pass on must keep the same
 licence and credit. Metadata comes from Wikimedia Commons (CC BY-SA 4.0). This app is independent
 and not affiliated with the Wikimedia Foundation.
+
+---
+
+## ☕ Donate / Buy me a coffee
+
+**Coming soon** — our donation options are on the way.
+
+| Platform | Status |
+| --- | --- |
+| Paytm | Coming soon |
+| PayPal | Coming soon |
+| GPay (Google Pay) | Coming soon |
+
+If you like our work, you can support us with a donation. We are bringing this very soon — **coming soon**.
